@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertidor de Monedas con Imagen</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Librería para leer texto de imágenes (OCR) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Convertidor de Precios desde Imagen</h1>
+
+        <div class="upload-section">
+            <input type="file" id="imageInput" accept="image/*" capture="environment">
+            <p>Selecciona una foto con un precio</p>
+        </div>
+
+        <div id="preview" class="preview"></div>
+
+        <div class="result-section">
+            <p><strong>Texto detectado:</strong></p>
+            <div id="textoDetectado">-</div>
+
+            <p><strong>Precio detectado:</strong></p>
+            <div id="precioDetectado">-</div>
+
+            <div class="conversion">
+                <label>Moneda original:</label>
+                <select id="monedaOrigen">
+                    <option value="USD">USD - Dólar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="CRC">CRC - Colón Costarricense</option>
+                    <option value="MXN">MXN - Peso Mexicano</option>
+                    <option value="COP">COP - Peso Colombiano</option>
+                    <option value="ARS">ARS - Peso Argentino</option>
+                    <option value="CLP">CLP - Peso Chileno</option>
+                    <option value="PEN">PEN - Sol Peruano</option>
+                </select>
+
+                <label>Convertir a:</label>
+                <select id="monedaDestino">
+                    <option value="USD">USD - Dólar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="CRC">CRC - Colón Costarricense</option>
+                    <option value="MXN">MXN - Peso Mexicano</option>
+                    <option value="COP">COP - Peso Colombiano</option>
+                    <option value="ARS">ARS - Peso Argentino</option>
+                    <option value="CLP">CLP - Peso Chileno</option>
+                    <option value="PEN">PEN - Sol Peruano</option>
+                </select>
+
+                <button id="btnConvertir">Convertir</button>
+            </div>
+
+            <div id="resultadoConversion" class="resultado"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
