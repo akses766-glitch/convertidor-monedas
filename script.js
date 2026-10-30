@@ -8,7 +8,7 @@ const resultadoConversion = document.getElementById('resultadoConversion');
 
 let precioEncontrado = null;
 
-// Función para preprocesar la imagen (mejorar OCR)
+// Función para preprocesar la imagen
 function preprocessImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -19,7 +19,6 @@ function preprocessImage(file) {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
 
-                // Limitar tamaño para que no sea muy pesado
                 const maxWidth = 1200;
                 let width = img.width;
                 let height = img.height;
@@ -33,20 +32,15 @@ function preprocessImage(file) {
                 canvas.height = height;
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Obtener los píxeles
                 const imageData = ctx.getImageData(0, 0, width, height);
                 const data = imageData.data;
 
-                // Convertir a escala de grises + aumentar contraste
                 for (let i = 0; i < data.length; i += 4) {
                     const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-
-                    // Aumentar contraste
-                    let value = avg > 140 ? 255 : 0;  // Umbral (binarización)
-                    
-                    data[i] = value;     // R
-                    data[i + 1] = value; // G
-                    data[i + 2] = value; // B
+                    const value = avg > 140 ? 255 : 0;
+                    data[i] = value;
+                    data[i + 1] = value;
+                    data[i + 2] = value;
                 }
 
                 ctx.putImageData(imageData, 0, 0);
@@ -59,12 +53,11 @@ function preprocessImage(file) {
     });
 }
 
-// Cuando el usuario selecciona una imagen
+// Cuando seleccionan una imagen
 imageInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Vista previa original
     const reader = new FileReader();
     reader.onload = () => {
         preview.innerHTML = `<img src="${reader.result}" alt="Vista previa">`;
@@ -78,49 +71,57 @@ imageInput.addEventListener('change', async (e) => {
     precioEncontrado = null;
 
     try {
-        // 1. Preprocesar la imagen
         const processedCanvas = await preprocessImage(file);
 
-        // 2. Leer con Tesseract usando la imagen procesada
         const { data: { text } } = await Tesseract.recognize(processedCanvas, 'spa+eng', {
             logger: m => console.log(m),
-            tessedit_pageseg_mode: 6 // Asume un bloque uniforme de texto
+            tessedit_pageseg_mode: 6
         });
 
         textoDetectado.textContent = text || "No se pudo leer texto";
 
-        // Buscar números (precios)
-        const precios = text.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+[.,]\d{1,2}|\d+/g);
+        // Buscar números
+        const precios = text.match(/\d{1,8}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+/g);
 
         if (precios && precios.length > 0) {
             // Tomar el número más largo
             let precioTexto = precios.reduce((a, b) => a.length >= b.length ? a : b);
 
-            // Lógica para manejar coma y punto
+            // Limpiar el número de forma más segura
             let precioLimpio = precioTexto;
 
-            // Si tiene coma y punto, decidimos cuál es decimal
+            // Quitar puntos de miles y dejar solo el decimal si existe
             if (precioLimpio.includes(',') && precioLimpio.includes('.')) {
-                // El último separador suele ser el decimal
+                // Tiene ambos: el último es el decimal
                 if (precioLimpio.lastIndexOf(',') > precioLimpio.lastIndexOf('.')) {
                     precioLimpio = precioLimpio.replace(/\./g, '').replace(',', '.');
                 } else {
                     precioLimpio = precioLimpio.replace(/,/g, '');
                 }
             } else if (precioLimpio.includes(',')) {
-                // Solo coma: si hay 3 dígitos después es miles, si hay 1 o 2 es decimal
                 const partes = precioLimpio.split(',');
                 if (partes[1] && partes[1].length <= 2) {
-                    precioLimpio = precioLimpio.replace(',', '.'); // decimal
+                    // Es decimal (ej: 2,68)
+                    precioLimpio = precioLimpio.replace(',', '.');
                 } else {
-                    precioLimpio = precioLimpio.replace(/,/g, ''); // miles
+                    // Es separador de miles (ej: 19,900)
+                    precioLimpio = precioLimpio.replace(/,/g, '');
+                }
+            } else {
+                // Solo tiene puntos o nada
+                const partes = precioLimpio.split('.');
+                if (partes.length > 1 && partes[partes.length - 1].length > 2) {
+                    // Puntos de miles
+                    precioLimpio = precioLimpio.replace(/\./g, '');
                 }
             }
 
+            // Dejar solo números y punto decimal
             precioLimpio = precioLimpio.replace(/[^\d.]/g, '');
+
             precioEncontrado = parseFloat(precioLimpio);
 
-            if (!isNaN(precioEncontrado)) {
+            if (!isNaN(precioEncontrado) && precioEncontrado > 0) {
                 precioDetectado.textContent = precioEncontrado.toFixed(2);
                 precioManual.value = precioEncontrado;
             } else {
@@ -137,9 +138,8 @@ imageInput.addEventListener('change', async (e) => {
     }
 });
 
-// Convertir
+// Botón convertir
 btnConvertir.addEventListener('click', async () => {
-    // Prioridad al precio manual
     const manual = parseFloat(precioManual.value);
     if (!isNaN(manual) && manual > 0) {
         precioEncontrado = manual;
