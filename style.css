@@ -93,7 +93,6 @@ button:hover {
     .preview img {
         max-height: 250px;
     }
-}
 .manual-input {
     margin: 20px 0;
     display: flex;
@@ -106,4 +105,25 @@ button:hover {
     font-size: 16px;
     border-radius: 6px;
     border: 1px solid #ccc;
+}
+
+/* Mejoras para celular */
+@media (max-width: 600px) {
+    .container {
+        padding: 20px 15px;
+        margin: 10px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    select, button, .manual-input input {
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    .preview img {
+        max-height: 250px;
+    }
 }
