@@ -8,27 +8,83 @@ const resultadoConversion = document.getElementById('resultadoConversion');
 
 let precioEncontrado = null;
 
+// Función para preprocesar la imagen (mejorar OCR)
+function preprocessImage(file) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Limitar tamaño para que no sea muy pesado
+                const maxWidth = 1200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Obtener los píxeles
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+
+                // Convertir a escala de grises + aumentar contraste
+                for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+
+                    // Aumentar contraste
+                    let value = avg > 140 ? 255 : 0;  // Umbral (binarización)
+                    
+                    data[i] = value;     // R
+                    data[i + 1] = value; // G
+                    data[i + 2] = value; // B
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+                resolve(canvas);
+            };
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 // Cuando el usuario selecciona una imagen
 imageInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Vista previa
+    // Vista previa original
     const reader = new FileReader();
     reader.onload = () => {
         preview.innerHTML = `<img src="${reader.result}" alt="Vista previa">`;
     };
     reader.readAsDataURL(file);
 
-    textoDetectado.textContent = "Leyendo imagen... espera un momento";
+    textoDetectado.textContent = "Procesando imagen... espera un momento";
     precioDetectado.textContent = "-";
     precioManual.value = "";
     resultadoConversion.textContent = "";
     precioEncontrado = null;
 
     try {
-        const { data: { text } } = await Tesseract.recognize(file, 'spa+eng', {
-            logger: m => console.log(m)
+        // 1. Preprocesar la imagen
+        const processedCanvas = await preprocessImage(file);
+
+        // 2. Leer con Tesseract usando la imagen procesada
+        const { data: { text } } = await Tesseract.recognize(processedCanvas, 'spa+eng', {
+            logger: m => console.log(m),
+            tessedit_pageseg_mode: 6 // Asume un bloque uniforme de texto
         });
 
         textoDetectado.textContent = text || "No se pudo leer texto";
@@ -43,7 +99,7 @@ imageInput.addEventListener('change', async (e) => {
             precioEncontrado = parseFloat(precioLimpio);
 
             precioDetectado.textContent = precioEncontrado.toFixed(2);
-            precioManual.value = precioEncontrado; // Rellenar el campo manual también
+            precioManual.value = precioEncontrado;
         } else {
             precioDetectado.textContent = "No se detectó ningún precio";
             precioEncontrado = null;
@@ -56,7 +112,7 @@ imageInput.addEventListener('change', async (e) => {
 
 // Convertir
 btnConvertir.addEventListener('click', async () => {
-    // Prioridad: si hay precio manual, usar ese
+    // Prioridad al precio manual
     const manual = parseFloat(precioManual.value);
     if (!isNaN(manual) && manual > 0) {
         precioEncontrado = manual;
