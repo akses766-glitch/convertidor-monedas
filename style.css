@@ -94,3 +94,16 @@ button:hover {
         max-height: 250px;
     }
 }
+.manual-input {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.manual-input input {
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
