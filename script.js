@@ -90,16 +90,43 @@ imageInput.addEventListener('change', async (e) => {
         textoDetectado.textContent = text || "No se pudo leer texto";
 
         // Buscar números (precios)
-        const precios = text.match(/\d{1,8}(?:[.,]\d{3})*(?:[.,]\d{1,2})?/g);
+        const precios = text.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+[.,]\d{1,2}|\d+/g);
 
         if (precios && precios.length > 0) {
             // Tomar el número más largo
             let precioTexto = precios.reduce((a, b) => a.length >= b.length ? a : b);
-            let precioLimpio = precioTexto.replace(/[^\d]/g, '');
+
+            // Lógica para manejar coma y punto
+            let precioLimpio = precioTexto;
+
+            // Si tiene coma y punto, decidimos cuál es decimal
+            if (precioLimpio.includes(',') && precioLimpio.includes('.')) {
+                // El último separador suele ser el decimal
+                if (precioLimpio.lastIndexOf(',') > precioLimpio.lastIndexOf('.')) {
+                    precioLimpio = precioLimpio.replace(/\./g, '').replace(',', '.');
+                } else {
+                    precioLimpio = precioLimpio.replace(/,/g, '');
+                }
+            } else if (precioLimpio.includes(',')) {
+                // Solo coma: si hay 3 dígitos después es miles, si hay 1 o 2 es decimal
+                const partes = precioLimpio.split(',');
+                if (partes[1] && partes[1].length <= 2) {
+                    precioLimpio = precioLimpio.replace(',', '.'); // decimal
+                } else {
+                    precioLimpio = precioLimpio.replace(/,/g, ''); // miles
+                }
+            }
+
+            precioLimpio = precioLimpio.replace(/[^\d.]/g, '');
             precioEncontrado = parseFloat(precioLimpio);
 
-            precioDetectado.textContent = precioEncontrado.toFixed(2);
-            precioManual.value = precioEncontrado;
+            if (!isNaN(precioEncontrado)) {
+                precioDetectado.textContent = precioEncontrado.toFixed(2);
+                precioManual.value = precioEncontrado;
+            } else {
+                precioDetectado.textContent = "No se detectó ningún precio";
+                precioEncontrado = null;
+            }
         } else {
             precioDetectado.textContent = "No se detectó ningún precio";
             precioEncontrado = null;
