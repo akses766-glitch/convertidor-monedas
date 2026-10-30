@@ -127,3 +127,11 @@ button:hover {
         max-height: 250px;
     }
 }
+
+.aviso {
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+    line-height: 1.4;
+}
